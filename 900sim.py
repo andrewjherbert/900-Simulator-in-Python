@@ -1,4 +1,4 @@
-# Elliott 903 simulator - Andrew Herbert - 02/09/2020
+# Elliott 903 simulator - Andrew Herbert - 28/09/2020
 
 # Simulator for Elliott 903 / 920B
 # Does not implement 'undefined' effects
@@ -119,6 +119,11 @@ ptpDefault = '.punch'
 ptpPath    = ptpDefault # can be overridden by command line option -ptout
 ptpFile    = None
 
+ttyInDefault = '.ttyin'
+ttyInPath    = ttyInDefault # can be overridden by command line option -ttyin
+ttyInBuf     = None
+ttyInIdx     = 0
+
 # Save any remaining paper tape to simulate leaving tape in reader between runs
 def closeReader ():
     if not (ptrBuf is None):
@@ -139,7 +144,7 @@ def readTape ():
         try:
             with open(ptrPath, 'rb') as f: # open input file on first 15 2048
                 ptrBuf = f.read()
-        except: failure('cannot open input file ' + ptrPath)
+        except: failure('cannot open ptr input file ' + ptrPath)
     if ptrIdx >= len(ptrBuf):
         msg = 'run off end of input tape'
         trace(msg)
@@ -151,7 +156,29 @@ def readTape ():
         failure('invalid code in paper tape input - %d' & code)
     ptrIdx+=1
     if not (traceFile is None):
-        trace('read code %3d' % code)
+        trace('ptr read code %3d' % code)
+    return code
+
+# Read tty
+def readTTYIn ():
+    global ttyInBuf, ttyInIdx
+    if ttyInBuf is None:
+        try:
+            with open(ttyInPath, 'rb') as f: # open input file on first 15 2048
+                ttyInBuf = f.read()
+        except: failure('cannot open tty input file ' + ttyInPath)
+    if ttyInIdx >= len(ttyInBuf):
+        msg = 'run off end of tty input'
+        trace(msg)
+        endTracing()
+        writeStoreToFile() # preserve store in this case to allow resume
+        failure(msg)
+    code = ttyInBuf[ttyInIdx]
+    if code < 0 | code > 128:
+        failure('invalid code in tty input - %d' & code)
+    ttyInIdx+=1
+    if not (traceFile is None):
+        trace('tty read code %3d' % code)
     return code
 
 # Output to paper tape punch
@@ -244,6 +271,8 @@ def storeALevel1 (addr):
     if 8180 <= addr <= 8191: # need this for FORTRAN to work
         trace('write to initial instructions ignored')
         return
+    if addr == (8192+593):
+        print('593^1', aReg, 'SCR', store[0])
     store[addr] = aReg
 
 def storeALevel4 (addr):
@@ -381,8 +410,9 @@ def inOut (addr):
         functionDict[5] = storeALevel4
     elif opAddr == 2048:
         byte = readTape()
-        if byte != 0:
-            monitor = True
+        aReg = ((aReg << 7) | byte) & mask18
+    elif opAddr == 2052:
+        byte = readTTYIn()
         aReg = ((aReg << 7) | byte) & mask18
     elif opAddr == 6144:
         punchTape(aReg & 255)
@@ -439,9 +469,11 @@ jumpAddr = 8181 # default to running initial orders
 
 # Decode parameters
 def getArgs():
-    global ptrPath, ptpPath, jumpAddr, limit
+    global ptrPath, ptpPath, ttyInPath, jumpAddr, limit
     parser = argparse.ArgumentParser()
     parser.add_argument('-ptin',  help='paper tape input file path',
+                        default='')
+    parser.add_argument('-ttyin',  help='teleprinter input file path',
                         default='')
     parser.add_argument('-ptout', help='paper tape output file path',
                         default='')
@@ -453,6 +485,8 @@ def getArgs():
     args = parser.parse_args()
     if args.ptin != '':
         ptrPath = args.ptin
+    if args.ttyin != '':
+        ttyInPath = args.ttyin
     if args.ptout != '':
         ptpPath = args.ptout
     if args.jump != '':
