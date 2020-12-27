@@ -1,9 +1,8 @@
-# Elliott 903 simulator - Andrew Herbert - 28/122020
+# Elliott 903 simulator - Andrew Herbert - 27/12/2020
 
 # Simulator for Elliott 903 / 920B
 # Does not implement 'undefined' effects
-# Has simplified handling of priority levels and initial orders
-# Teletype input is not implemented.
+# Has simplified handling of priority levels and initial orders.
 
 # At beginning reads in contents of store from file .store if available,
 # at end, dumps out contents of store to .store, unless catastrophic errors.
@@ -12,13 +11,16 @@
 # an interpreted listing of the store.
 
 # By default reads input from file .reader unless overriden by -ptin option
-# on command line.  At end writes any unconsumed paper tape input to .reader,
-# unless catastrophic errors, overwriting existing contents.  This is to
-# simulate leaving a tape in the reader between successive entry points.
-# The input file should be raw bytes representing eight bit paper tape
+# on the command line.  At end writes any unconsumed paper tape input to
+# .reader,# unless catastrophic errors, overwriting existing contents.
+# This is to # simulate leaving a tape in the reader between successive entry
+# points. # The input file should be raw bytes representing eight bit paper tape
 # codes, either binary of one of the Elliott telecodes.  There is a companion
-# program "to900text.py" which converts a UTF-8 character file to it's
+# program "to900text.py" which converts a UTF-8 character file to its
 # equivalent in Elliott 900 telecode.
+
+# Teletype input is handled similarly, taken from the file .ttyin unless
+# overridden by the -ttyin option on the command line
 
 # By default paper tape output is send to file .punch, unless overridden by
 # -ptout option on command line.  There is a companion program "from900text.py"
@@ -34,6 +36,9 @@
 # present.  There is a companion program "traceprint.py" that produces am
 # interpreted listing of the trace.
 
+# The program exits with an exit code indicating the reason for completion,
+# e.g., 0 = dynamic stop, 1 = run out of paper tape input, etc.
+
 import sys
 import os.path
 import argparse
@@ -47,16 +52,17 @@ ttyStop   =   2  # run off tty input
 limitStop =   3  # reached execution limit
 otherStop = 255  # unspecified error
 
-def finish (code)
-    print('exiting with code', code)
+def finish (code):
+    #print('exiting with code', code)
+    writeStoreToFile ()
     endTracing () # close tracing if any to ensure written to file
-    CloseReader () # tidy up I/O
-    ClosePunch ()
-    CLoseTTY ()
+    closeReader () # tidy up I/O
+    closePunch ()
+    closeTTY ()
     sys.exit(code)
     
 def failure (s, code):
-    print ('***Error - ', s)
+    print ('\n\n***Error - ', s)
     finish (code)
     
 
@@ -163,8 +169,7 @@ def readTape ():
     if ptrIdx >= len(ptrBuf):
         msg = 'run off end of input tape'
         trace(msg)
-        writeStoreToFile() # preserve store in this case to allow resume
-        failure(msg, ptrError)
+        failure(msg, rdrStop)
     code = ptrBuf[ptrIdx]
     if code < 0 | code > 128:
         failure('invalid code in paper tape input - %d' & code, otherError)
@@ -172,6 +177,15 @@ def readTape ():
     if not (traceFile is None):
         trace('ptr read code %3d' % code)
     return code
+
+# Save any remaining tty input analogous to papert ape input
+def closeTTY ():
+    if (not ttyInBuf is None):
+        try:
+            with open(ttyInDefault, 'wb') as f:
+                f.write(ttyInBuf[ttyInIdx:])
+        except: failure('cannot save remaining teletype input to ' +
+                         ttyInDefault, otherError)
 
 # Read tty
 def readTTYIn ():
@@ -184,8 +198,7 @@ def readTTYIn ():
     if ttyInIdx >= len(ttyInBuf):
         msg = 'run off end of tty input'
         trace(msg)
-        writeStoreToFile() # preserve store in this case to allow resume
-        failure(msg, ttyError)
+        failure(msg, ttyStop)
     code = ttyInBuf[ttyInIdx]
     if code < 0 | code > 128:
         failure('invalid code in tty input - %d' & code, otherError)
@@ -285,8 +298,6 @@ def storeALevel1 (addr):
     if 8180 <= addr <= 8191: # need this for FORTRAN to work
         trace('write to initial instructions ignored')
         return
-    if addr == (8192+593):
-        print('593^1', aReg, 'SCR', store[0])
     store[addr] = aReg
 
 def storeALevel4 (addr):
@@ -447,14 +458,6 @@ lastS = 0  # detect a dynmaic stop if SCR isn't changed
 
 limit = 200000000 # about one hundred hours of computation
 
-def endRun (s):
-    closeReader()      # save remaining paper tape
-    closePunch()       # close paper tape output file
-    endTracing()       # save trace output, if any
-    writeStoreToFile() # save store contents
-    print('endRun exit', s)
-    sys.exit(s)
-
 def decode ():
     global lastS, limit, scr
     # instruction fetch, decode and execute loop
@@ -477,7 +480,6 @@ def decode ():
             return dynStop
     msg = 'execution limit reached'
     trace(msg)
-    writeStoreToFile()
     failure(msg, limitError)
 
 jumpAddr = 8181 # default to running initial orders
@@ -528,7 +530,7 @@ store[scr] = jumpAddr                # initialise sequence control register
 res = decode()                   # run instruction fetch decode loop
 #stopTime = time.time()
 #print('Execution time', stopTime-startTime, 'secs')
-endRun (dynStop)
+finish (res)
 
 
 

@@ -1,8 +1,11 @@
-# Convert 900 telecode to UTF-8 - Andrew Herbert - 15/07/20
+# Convert 900 telecode to UTF-8 - Andrew Herbert - 27/12/20
 
 import argparse
 
+newline = True
+
 def convert(path):
+    global newline
     with open(path, 'rb') as inFile:
         input  = (inFile.read())
         j = 0
@@ -10,7 +13,7 @@ def convert(path):
             ch = input[i] & 127
             if ch == 10 or 32 <= ch <= 122:
                 print(chr(ch), end='')
-
+                newline = ch == 10
 
 # Decode parameters
 def getArgs():
@@ -23,3 +26,5 @@ def getArgs():
 # main program
 getArgs()                   # get and decode command line arguments
 convert(inPath)
+if not newline:             # force new line at end of file if not present
+    print()

@@ -1,4 +1,5 @@
-﻿      GLOBAL, DAMPED, SQRT, EXP, SIN]
+
+      GLOBAL, DAMPED, SQRT, EXP, SIN]
 
 C  DAMPED OSCILLATION WITH GRAPHING
 C  BASED ON CASE STUDY 11A (GRAPHING / DAMPED
@@ -11,9 +12,7 @@ C  COMPUTE COMMONLY USED FACTORS
       REC2PI = 1 / TWOPI
 
 C  READ PARAMETERS
-WRITE(3,9999)
-9999 FORMAT(3H OK//)
-
+      
       READ (1) Q, R, C, ZL, ICYCLE, NPERCY
 
 C  CHECK FOR INVALID DATA
@@ -50,14 +49,14 @@ C  START AT ZERO BEFORE ENTERING LOOP
       T = 0.0
 
 C  COMPUTE NUMBER OF POINTS NEEDED
-
+      
       LIMIT = ICYCLES * NPERCY
 
 C  COMPUTING LOOP - DO COUNTS NUMBER OF EXECUTIONS
 
       DO 70 J1 = 1, LIMIT
          CURRENT = RIM * EXP(-C1 * T) * SIN(C2 * T)
-
+  
 C  COMPUTE DESIRED LOCATION OF PLOTTING SYMBOL
 
          J = 30.0 * (CURRENT / RIM + 1.0) + 1.5
@@ -84,7 +83,7 @@ C  POINT IS BEFORE AXIS
 C  POINT IS ON AXIS
 
   40     DO 41 K = 1, 30
-            WRITE (2, 112)
+            WRITE (2, 112) 
   41     CONTINUE
          WRITE (2, 113)
          GOTO 60
@@ -92,7 +91,7 @@ C  POINT IS ON AXIS
 C  POINT IS AFTER AXIS
 
   50     DO 51 K = 1, 30
-            WRITE (2, 112)
+            WRITE (2, 112) 
   51     CONTINUE
          WRITE (2, 110)
          DO 52 J = 32, J-1
@@ -103,21 +102,21 @@ C  POINT IS AFTER AXIS
   60     T = T + DELTAT
 
   70  CONTINUE
-
+     
  999  STOP
  110  FORMAT (Z, 1H.)
  111  FORMAT (5X)
  112  FORMAT (Z, 1H )
  113  FORMAT (Z, 1HX)
  115  FORMAT (17HCYCLES         = , I3,                    /,
-$             17HDOTS PER CYCLE = , I3,                    ///,
-$             17HINITIAL CHARGE = , F10.6, 10H   COULOMB,  /,
-$             17HRESISTANCE     = , F7.3,   9H      OHM,   /,
-$             17HCAPACITANCE    = , F10.6,  8H   FARAD,    /,
-$             17HINDUCTANCE     = , F7.3,  11H      HENRY, ///)
-      END
+\             17HDOTS PER CYCLE = , I3,                    ///,
+\             17HINITIAL CHARGE = , F10.6, 10H   COULOMB,  /,
+\             17HRESISTANCE     = , F7.3,   9H      OHM,   /,
+\             17HCAPACITANCE    = , F10.6,  8H   FARAD,    /,
+\             17HINDUCTANCE     = , F7.3,  11H      HENRY, ///)  
 
-
+       END
+<! HALT !>
 0.00001
 1.000
 0.00001
