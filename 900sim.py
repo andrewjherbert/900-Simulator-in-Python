@@ -1,4 +1,4 @@
-# Elliott 903 simulator - Andrew Herbert - 28/09/2020
+# Elliott 903 simulator - Andrew Herbert - 28/122020
 
 # Simulator for Elliott 903 / 920B
 # Does not implement 'undefined' effects
@@ -17,8 +17,8 @@
 # simulate leaving a tape in the reader between successive entry points.
 # The input file should be raw bytes representing eight bit paper tape
 # codes, either binary of one of the Elliott telecodes.  There is a companion
-# program "to900text.py" which converts a UTF-8 character file to it's equivalent
-# in Elliott 900 telecode.
+# program "to900text.py" which converts a UTF-8 character file to it's
+# equivalent in Elliott 900 telecode.
 
 # By default paper tape output is send to file .punch, unless overridden by
 # -ptout option on command line.  There is a companion program "from900text.py"
@@ -39,12 +39,26 @@ import os.path
 import argparse
 import time
 
-# Error handling
+# Exit handling
 
-def failure (s):
+dynStop   =   0  # dynamic stop
+rdrStop   =   1  # run off paper tape
+ttyStop   =   2  # run off tty input
+limitStop =   3  # reached execution limit
+otherStop = 255  # unspecified error
+
+def finish (code)
+    print('exiting with code', code)
+    endTracing () # close tracing if any to ensure written to file
+    CloseReader () # tidy up I/O
+    ClosePunch ()
+    CLoseTTY ()
+    sys.exit(code)
+    
+def failure (s, code):
     print ('***Error - ', s)
-    endTracing () # close tracing if any to ensure wriiten to file
-    sys.exit(-1)
+    finish (code)
+    
 
 # Useful constants for 18 and 13 bit arithmetic
 bit19    = 1<<18    # arithmetic is 2's complement 18 bits
@@ -71,7 +85,7 @@ def startTracing ():
     try:
         traceFile = open(tracePath, 'w')
     except:
-        failure('cannot open trace file ' + tracePath)
+        failure('cannot open trace file ' + tracePath, otherError)
 
 def endTracing ():
     if not (traceFile is None):
@@ -130,7 +144,8 @@ def closeReader ():
         try:
             with open(ptrDefault, 'wb') as f:
                 f.write(ptrBuf[ptrIdx:])
-        except: failure('cannot save remaining paper tape to ' + ptrDefault)
+        except: failure('cannot save remaining paper tape to ' + ptrDefault,
+                        otherError)
 
 # Close paper tape punch to ensure output to file
 def closePunch ():
@@ -144,16 +159,15 @@ def readTape ():
         try:
             with open(ptrPath, 'rb') as f: # open input file on first 15 2048
                 ptrBuf = f.read()
-        except: failure('cannot open ptr input file ' + ptrPath)
+        except: failure('cannot open ptr input file ' + ptrPath, otherError)
     if ptrIdx >= len(ptrBuf):
         msg = 'run off end of input tape'
         trace(msg)
-        endTracing()
         writeStoreToFile() # preserve store in this case to allow resume
-        failure(msg)
+        failure(msg, ptrError)
     code = ptrBuf[ptrIdx]
     if code < 0 | code > 128:
-        failure('invalid code in paper tape input - %d' & code)
+        failure('invalid code in paper tape input - %d' & code, otherError)
     ptrIdx+=1
     if not (traceFile is None):
         trace('ptr read code %3d' % code)
@@ -166,16 +180,15 @@ def readTTYIn ():
         try:
             with open(ttyInPath, 'rb') as f: # open input file on first 15 2048
                 ttyInBuf = f.read()
-        except: failure('cannot open tty input file ' + ttyInPath)
+        except: failure('cannot open tty input file ' + ttyInPath, otherError)
     if ttyInIdx >= len(ttyInBuf):
         msg = 'run off end of tty input'
         trace(msg)
-        endTracing()
         writeStoreToFile() # preserve store in this case to allow resume
-        failure(msg)
+        failure(msg, ttyError)
     code = ttyInBuf[ttyInIdx]
     if code < 0 | code > 128:
-        failure('invalid code in tty input - %d' & code)
+        failure('invalid code in tty input - %d' & code, otherError)
     ttyInIdx+=1
     if not (traceFile is None):
         trace('tty read code %3d' % code)
@@ -187,11 +200,12 @@ def punchTape (code):
     if ptpFile is None:
         try:
             ptpFile = open(ptpPath, 'wb') # open output file on first 15 6144
-        except: failure('cannot open paper tape output file ' + ptpPath)
+        except: failure('cannot open paper tape output file ' + ptpPath,
+                        otherError)
     ptpFile.write(bytes([code]))
 
 def readTTY ():
-    failure('teletype input not implemented')
+    failure('teletype input from console not implemented', otherError)
 
 def writeTTY (code):
     ch = code & 127
@@ -396,7 +410,7 @@ def shift (addr):
         aReg = (aq >> 18) & mask18
         qReg = aq & mask18
     else:
-        failure('unsupported i/o 14 %4d' & places)
+        failure('unsupported i/o 14 %4d' & places, otherError)
 
 # 15 Input/output etc
 def inOut (addr):
@@ -419,7 +433,7 @@ def inOut (addr):
     elif opAddr == 6148:
         writeTTY(aReg & 255)
     else:
-        failure('Unsupported i/o 15 %4d' % opAddr)
+        failure('Unsupported i/o 15 %4d' % opAddr, otherError)
 
 # Set up function code mapping to functions
 functionDict = {  0: loadB,     1: add,           2: negAdd,   3: storeQ,
@@ -438,6 +452,7 @@ def endRun (s):
     closePunch()       # close paper tape output file
     endTracing()       # save trace output, if any
     writeStoreToFile() # save store contents
+    print('endRun exit', s)
     sys.exit(s)
 
 def decode ():
@@ -459,11 +474,11 @@ def decode ():
             msg = 'Dynamic stop at %d' % store[scr]
             trace(msg)
             #print('\n', msg, sep='')
-            return lastS
+            return dynStop
     msg = 'execution limit reached'
     trace(msg)
     writeStoreToFile()
-    failure(msg)
+    failure(msg, limitError)
 
 jumpAddr = 8181 # default to running initial orders
 
@@ -494,12 +509,12 @@ def getArgs():
         if 8 <= addr <= 8181:
             jumpAddr = addr
         else:
-            failure('start address must be in range 8-8181')
+            failure('start address must be in range 8-8181', otherError)
     if args.trace:
         startTracing()
     if args.limit:
         if args.limit < 1:
-            failure('nonsensical limit - %d', args.limit)
+            failure('nonsensical limit - %d', args.limit, otherStop)
         else:
             limit = args.limit
 
@@ -513,7 +528,7 @@ store[scr] = jumpAddr                # initialise sequence control register
 res = decode()                   # run instruction fetch decode loop
 #stopTime = time.time()
 #print('Execution time', stopTime-startTime, 'secs')
-endRun (res)
+endRun (dynStop)
 
 
 
