@@ -1,28 +1,30 @@
 #!/bin/sh
-rm .reader
-echo loading Algol
+rm -f .reader .punch .ptputf .ptpasc
+#echo loading Algol
 python3 900sim.py -ptin alg16klg_masd
-echo convert input tape
+#echo convert input tape
 python3 to900text.py src/algol/$1
-echo run translator
+#echo run translator
 python3 900sim.py -jump 8
 if [ $? != 0 ]
 then exit $?
 fi
 echo 
 echo
-echo run interpreter
-rm .punch*
+#echo run interpreter
 python3 900sim.py -jump 10
-echo  
-if [ -f .punch ]
+touch .punch
+python3 from900text.py >.ptputf
+iconv -c -f UTF-8 -t ASCII .ptputf >.ptpasc
+if  [ ! -s .ptpasc ]
 then
-    echo display punch output
-    python3 from900text.py
+    echo No  punch output
 else
-    echo No punch output
+    echo Punch output
+    echo
+    cat .ptpasc
 fi
-echo
+
 
 
 

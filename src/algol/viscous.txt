@@ -69,8 +69,6 @@
 	"comment" Delta alpha is the only input data item required by the
 	program;
 
-	punch (3);
-
 	"print" {Propagation of an Impulse into a Viscous-locking },
 		{Medium{L4S4}}, sameline,
 		{Delta alpha = }, aligned (1,4), Delta alpha, {{L3}},
