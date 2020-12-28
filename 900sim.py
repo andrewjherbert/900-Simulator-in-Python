@@ -1,4 +1,4 @@
-# Elliott 903 simulator - Andrew Herbert - 27/12/2020
+# Elliott 903 simulator - Andrew Herbert - 28/12/2020
 
 # Simulator for Elliott 903 / 920B
 # Does not implement 'undefined' effects
@@ -62,7 +62,7 @@ def finish (code):
     sys.exit(code)
     
 def failure (s, code):
-    print ('\n\n***Error - ', s)
+    print ('\n\n***Halted - ', s)
     finish (code)
     
 
@@ -91,7 +91,7 @@ def startTracing ():
     try:
         traceFile = open(tracePath, 'w')
     except:
-        failure('cannot open trace file ' + tracePath, otherError)
+        failure('cannot open trace file ' + tracePath, otherStop)
 
 def endTracing ():
     if not (traceFile is None):
@@ -147,11 +147,12 @@ ttyInIdx     = 0
 # Save any remaining paper tape to simulate leaving tape in reader between runs
 def closeReader ():
     if not (ptrBuf is None):
+        #print('Saving', ptrBuf[ptrIdx:])
         try:
             with open(ptrDefault, 'wb') as f:
                 f.write(ptrBuf[ptrIdx:])
         except: failure('cannot save remaining paper tape to ' + ptrDefault,
-                        otherError)
+                        otherStop)
 
 # Close paper tape punch to ensure output to file
 def closePunch ():
@@ -165,14 +166,14 @@ def readTape ():
         try:
             with open(ptrPath, 'rb') as f: # open input file on first 15 2048
                 ptrBuf = f.read()
-        except: failure('cannot open ptr input file ' + ptrPath, otherError)
+        except: failure('cannot open ptr input file ' + ptrPath, otherStop)
     if ptrIdx >= len(ptrBuf):
         msg = 'run off end of input tape'
         trace(msg)
         failure(msg, rdrStop)
     code = ptrBuf[ptrIdx]
     if code < 0 | code > 128:
-        failure('invalid code in paper tape input - %d' & code, otherError)
+        failure('invalid code in paper tape input - %d' & code, otherStop)
     ptrIdx+=1
     if not (traceFile is None):
         trace('ptr read code %3d' % code)
@@ -185,7 +186,7 @@ def closeTTY ():
             with open(ttyInDefault, 'wb') as f:
                 f.write(ttyInBuf[ttyInIdx:])
         except: failure('cannot save remaining teletype input to ' +
-                         ttyInDefault, otherError)
+                         ttyInDefault, otherStop)
 
 # Read tty
 def readTTYIn ():
@@ -194,14 +195,14 @@ def readTTYIn ():
         try:
             with open(ttyInPath, 'rb') as f: # open input file on first 15 2048
                 ttyInBuf = f.read()
-        except: failure('cannot open tty input file ' + ttyInPath, otherError)
+        except: failure('cannot open tty input file ' + ttyInPath, otherStop)
     if ttyInIdx >= len(ttyInBuf):
         msg = 'run off end of tty input'
         trace(msg)
         failure(msg, ttyStop)
     code = ttyInBuf[ttyInIdx]
     if code < 0 | code > 128:
-        failure('invalid code in tty input - %d' & code, otherError)
+        failure('invalid code in tty input - %d' & code, otherStop)
     ttyInIdx+=1
     if not (traceFile is None):
         trace('tty read code %3d' % code)
@@ -214,11 +215,11 @@ def punchTape (code):
         try:
             ptpFile = open(ptpPath, 'wb') # open output file on first 15 6144
         except: failure('cannot open paper tape output file ' + ptpPath,
-                        otherError)
+                        otherStop)
     ptpFile.write(bytes([code]))
 
 def readTTY ():
-    failure('teletype input from console not implemented', otherError)
+    failure('teletype input from console not implemented', otherStop)
 
 def writeTTY (code):
     ch = code & 127
@@ -421,7 +422,7 @@ def shift (addr):
         aReg = (aq >> 18) & mask18
         qReg = aq & mask18
     else:
-        failure('unsupported i/o 14 %4d' & places, otherError)
+        failure('unsupported i/o 14 %4d' & places, otherStop)
 
 # 15 Input/output etc
 def inOut (addr):
@@ -444,7 +445,7 @@ def inOut (addr):
     elif opAddr == 6148:
         writeTTY(aReg & 255)
     else:
-        failure('Unsupported i/o 15 %4d' % opAddr, otherError)
+        failure('Unsupported i/o 15 %4d' % opAddr, otherStop)
 
 # Set up function code mapping to functions
 functionDict = {  0: loadB,     1: add,           2: negAdd,   3: storeQ,
@@ -511,7 +512,7 @@ def getArgs():
         if 8 <= addr <= 8181:
             jumpAddr = addr
         else:
-            failure('start address must be in range 8-8181', otherError)
+            failure('start address must be in range 8-8181', otherStop)
     if args.trace:
         startTracing()
     if args.limit:

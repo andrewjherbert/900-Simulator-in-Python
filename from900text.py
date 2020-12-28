@@ -1,6 +1,7 @@
-# Convert 900 telecode to UTF-8 - Andrew Herbert - 27/12/20
+# Convert 900 telecode to ACII - Andrew Herbert - 28/12/20
 
 import argparse
+import sys
 
 newline = True
 
@@ -24,6 +25,8 @@ def getArgs():
     inPath = args.ptin if args.ptin!= None else '.punch'
 
 # main program
+sys.stdout.reconfigure(encoding='ASCII')
+                            # force stdout to be ASCII encoding
 getArgs()                   # get and decode command line arguments
 convert(inPath)
 if not newline:             # force new line at end of file if not present
