@@ -1,5 +1,5 @@
 #!/bin/sh
-rm -f .reader .punch .ptpasc
+rm -f .reader .punch .ascii
 #echo loading Algol
 python3 900sim.py -ptin alg16klg_masd
 #echo convert input tape
@@ -14,14 +14,15 @@ echo
 #echo run interpreter
 python3 900sim.py -jump 10
 touch .punch
-python3 from900text.py >.ptpasc
-if  [ ! -s .ptpasc ]
+python3 from900text.py
+if  [ ! -s .ascii ]
 then
-    echo No  punch output
-else
-    echo Punch output
+    echo "*** No punch output ***"
     echo
-    cat .ptpasc
+else
+    echo "*** Punch output ***"
+    echo
+    cat .ascii
 fi
 
 

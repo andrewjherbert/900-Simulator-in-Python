@@ -1,5 +1,5 @@
 #!/bin/sh
-rm -f .reader .punch .ptpasc
+rm -f .reader .punch .ascii
 #echo loading Fortran
 python3 900sim.py -ptin fort16klg_iss5
 #echo convert input tape $1
@@ -17,13 +17,13 @@ python3 900sim.py -jump 11
 echo
 echo
 touch .punch
-python3 from900text.py >.ptpasc
-if  [ ! -s .ptpasc ]
+python3 from900text.py
+if  [ ! -s .ascii ]
 then
-    echo No  punch output
+    echo "*** No punch output ***"
 else
-    echo Punch output
-    cat .ptpasc
+    echo "*** Punch output ***"
+    cat .ascii
 fi
 
 

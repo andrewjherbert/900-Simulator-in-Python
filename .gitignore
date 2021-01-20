@@ -2,9 +2,10 @@
 .punch
 .store
 .trace
-.ptpasc
+.ascii
 .reverse
 .ttyin
-.save
-.ttyin
+*~
+#*#
+
 
