@@ -1,4 +1,4 @@
-# Reverse .punch binary file to ,reverse  - Andrew Herbert - 28/12/20
+# Reverse .punch binary file to .reverse  - Andrew Herbert - 28/12/20
 
 def Reverse(path):
     with open('.reverse', 'wb') as outFile, open(path, 'rb') as inFile:

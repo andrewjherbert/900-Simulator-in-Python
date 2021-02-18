@@ -60,11 +60,11 @@ def finish (code):
     closePunch ()
     closeTTY ()
     sys.exit(code)
-    
+
 def failure (s, code):
     print ('\n\n***Halted - ', s)
     finish (code)
-    
+
 
 # Useful constants for 18 and 13 bit arithmetic
 bit19    = 1<<18    # arithmetic is 2's complement 18 bits
@@ -481,7 +481,7 @@ def decode ():
             return dynStop
     msg = 'execution limit reached'
     trace(msg)
-    failure(msg, limitError)
+    failure(msg, limitStop)
 
 jumpAddr = 8181 # default to running initial orders
 
