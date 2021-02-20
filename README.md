@@ -6,6 +6,10 @@ A simple simulator in Python for the Elliott 900 range of minicomputers
 This repository consists of a simulator for the Elliott 900 series of minicomputers
 written in Python, along with supporting utilities.
 
+A faster simulator, written in C, and with enhanced diagnostics is available at:
+
+    https://github.com/andrewjherbert/900-Simulator-in-C
+
 900sim.py is the simulator.
 
 binprint.py converts a binary file (sequence of raw bytes) into a sequence of tabulated
