@@ -1,4 +1,4 @@
-# Elliott 903 simulator - Andrew Herbert - 28/12/2020
+# Elliott 903 simulator - Andrew Herbert - 06/09/2022
 
 # Simulator for Elliott 903 / 920B
 # Does not implement 'undefined' effects
@@ -280,8 +280,8 @@ def add (addr):
 #  2 Negate and Add
 def negAdd (addr):
     global aReg, qReg
-    aReg = (store[addr] - aReg) & mask18
-    qReg = addr
+    qReg = store[addr]
+    aReg = (qReg - aReg) & mask18
 
 #  3 Store Q
 def storeQ (addr):
